@@ -31,7 +31,7 @@ Despite having [multiple language bindings](http://www.seleniumhq.org/download/)
 ### webdriver-manager ###
 webdriver-manager was installed with protractor, but you may want to install or update the binaries. If you're not going to _try_ testing with IE, skip the first command to install it:
 ```
-webdriver-manager --ie install
+webdriver-manager update --ie
 webdriver-manager update
 ```
 
@@ -44,7 +44,7 @@ To run unit tests, install the Karma test runner and some extra packages to help
 ```
 npm install -g karma karma-cli karma-jasmine
 npm install -g karma-chrome-launcher karma-phantomjs-launcher
-npm install -g karma-coverage growly karma-growl-reporter
+npm install -g karma-coverage growly karma-growl-reporter karma-clear-screen-reporter karma-spec-reporter
 
 karma --version
 ```
@@ -66,8 +66,9 @@ karma init karma.conf.js
 We'll have to [manually configure](https://github.com/karma-runner/karma-coverage#configuration) the file to add code coverage reports. Add values to `preprocessors:` and `reporters:`, and adding a new `coverageReporter:` property.
 
 To enable notifications using Growl, add `'growl'` to the `reporters:` array.
+To reset the console between test runs, add add `'clear-screen'` to the `reporters:` array.
 
-You're now good to go.
+Add `'clear-screen'` and `'spec'` to the reporters, remove `progress`, and you're now good to go.
 
 
 ## Running Tests ##
@@ -95,13 +96,58 @@ Check out the [Jasmine docs](http://jasmine.github.io/2.0/introduction.html).
 For headless (windowless) testing, the JavaScript-based browser [PhantomJS](https://nodejs.org/download/) ([v2.0.0](https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.0.0-windows.zip
 v2.0.0)) can be used. Since it is not a full-feature browser, it should be used with an inherent degree of risk. PhantomJS has it's own browser automation implementation of webdriver, called GhostDriver, ported to JavaScript. To use it .... TODO.
 
-# TODO: Growl and Pushover #
-
-```
-
-```
-
 ----
 
+# Object Oriented Programming with JavaScript #
+
+Intelligently cloning the transition from JSON to a JSON Graph data structure is about as good a time as any to dive into proper object oriented programming with JavaScript. But first, there's the elephant in the room:
+
+__JavaScript uses prototype-based programming, with behaviour being reused or expanding upon existing prototypes.__
+
+The following is an intro article from the Mozilla Developer Network (MDN) reduced down to leave you with an impression of the nature of OO with JavaScript:
+
+```JavaScript
+// object (class instance)
+var Person = function (name) {
+    // this is the "constructor"
+    // every method here is called upon initialization
+
+    // property:
+    this.name = name;
+
+    // method (1):
+    this.methodExample1 = function () {};
+};
+
+// method (2):
+Person.prototype.methodExample2 = function () {};
+
+// namespace (container for functionality)
+var APP = APP || {};
+APP.default_user = new Person('anonymous') {};
+APP.user = new Person('User') {};
+
+// inheritance
+function Superhero(name, superpower) {
+    Person.call(this, name);
+    this.superpower = superpower;
+}
+Superhero.prototype = Object.create(Person.prototype);
+Superhero.prototype.constructor = Superhero;
+
+// override method:
+Superhero.prototype.methodExample1 = function () { /* better method */ };
+var hero = new Superhero('Goku', '');
+
+// instanceof?
+hero instanceof Person === hero instanceof Superhero // true
+```
+
+Notice that JavaScript only supports single inheritance, but it doesn't detect the child class prototype.constructor so it must be stated manually. Brilliant, isn't it?
+
+
+[Introduction to Object-Oriented JavaScript(https://developer.mozilla.org/en-US/docs/Web/JavaScript/Introduction_to_Object-Oriented_JavaScript) on MDN
+
+----
 
 Why don't we use $log in our angular apps?
