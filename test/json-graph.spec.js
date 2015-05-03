@@ -3,6 +3,32 @@
 
 describe("_aspire_ to implement JSON Graph from _falcor_", function() {
 
+  describe('using updates to Array.prototype', function() {
+
+    it('.concatAll', function () {
+      expect([[1,2,3], [4,5,6], [7,8,9]].concatAll()).toEqual([1,2,3,4,5,6,7,8,9]);
+      expect(function () { [1,2,3].concatAll(); }).
+        toThrowError(TypeError);
+    });
+
+    it('.flatMap', function () {
+      expect(
+        [[1,2,3], [4,5,6], [7,8,9]].
+          flatMap(function (array) {
+            return [array[0]];
+          })
+      ).toEqual([1,4,7]);
+    });
+
+    it('.isEqual', function () {
+      expect([1,2,3].isEqual('abc')).toBe(false);
+      expect([1,2,3].isEqual([])).toEqual(false);
+      expect([1,2,3].isEqual([3,2,1])).toEqual(false);
+      expect([1,2,3].isEqual([1,2,3])).toEqual(true);
+    });
+  });
+
+
   describe('with the same API as used in the demos, where it', function () {
 
     var model;
@@ -42,7 +68,7 @@ describe("_aspire_ to implement JSON Graph from _falcor_", function() {
     it('defines the model.ref helper', function () {
       expect(aspire.Model.ref).toBeDefined();
     });
-  })
+  });
 
 
   describe('which implements model.ref', function () {
@@ -70,7 +96,7 @@ describe("_aspire_ to implement JSON Graph from _falcor_", function() {
       // the alternative is exposing
       expect(model.get('data')).toEqual('toBeDefined');
     });
-  })
+  });
 
   describe('which implements get/getValue', function () {
 
@@ -90,8 +116,7 @@ describe("_aspire_ to implement JSON Graph from _falcor_", function() {
           array: {
             "0": 'zero',
             "1": 'one',
-            "2": 'two',
-            length: 3
+            "2": 'two'
           },
           complex_array: {
             "0": {
@@ -101,7 +126,7 @@ describe("_aspire_ to implement JSON Graph from _falcor_", function() {
             },
             "1": {
               id: 125,
-              name: 'apple',
+              name: 'dragonfruit',
               color: 'red'
             },
             "2": {
@@ -135,21 +160,17 @@ describe("_aspire_ to implement JSON Graph from _falcor_", function() {
         expect(model.transformQuery('deep.nested.key')).toEqual(['deep','nested','key']);
       });
 
-      /*
-          TODO: Decide if we want to handle merging lists of queries.
-
       it('and handles lists of properies', function () {
-        expect(model.transformQuery('key1', 'key2')).toEqual([['key1', 'key2']]);
-        expect(model.transformQuery('nested.key1', 'key2')).toEqual([['key1', 'key2']);
-      })
-      */
+        expect(model.transformQuery('key1', 'key2')).toEqual(['key1'], ['key2']);
+        expect(model.transformQuery('nested.key1', 'key2')).toEqual(['nested','key1'], ['key2']);
+      });
 
       it('and handles array indicies', function () {
-        expect(model.transformQuery('key[0]')).toEqual(['key', ['0']]);
+        expect(model.transformQuery('key[0]')).toEqual(['key', 0]);
       });
 
       it('and handles ranges for array indicies', function () {
-        expect(model.transformQuery('key[0..5]')).toEqual(['key', ['0','1','2','3','4','5']]);
+        expect(model.transformQuery('key[0..5]')).toEqual(['key', [0,1,2,3,4,5]]);
       });
 
       it('and handles wildcard for array indicies', function () {
@@ -163,55 +184,87 @@ describe("_aspire_ to implement JSON Graph from _falcor_", function() {
             }
           }
         });
-        expect(model.transformQuery('data[*]')).toEqual(['data', ['0','1','2','3']]);
-      })
+        expect(model.transformQuery('data[*]')).toEqual(['data', [0,1,2,3]]);
+      });
     });
 
-    describe('and returing the expected values', function () {
+    xdescribe('and returing the expected values', function () {
       it('using .get() or .getValue()', function () {
         expect(model.get).toEqual(model.getValue);
       });
 
       it('when looking up a simple key', function() {
         expect(model.get('key')).toBe('value');
-      })
+      });
 
       it('when looking up nested keys', function() {
         expect(model.get('complex.nested.key')).toBe('value');
       });
 
-      it('when evaluating a reference', function() {
-        expect(model.get('nested.data')).toEqual({ name: 'hash' });
+      it('when looking up keys with array indicies', function() {
+        expect(model.get('dataStructureById[8]')).toEqual({ name: 'hash' });
       });
 
-  // TODO
-      xit('looks up arrays (as map)', function() {
-        expect(model.get('array')).toBe({'0':'zero','1':'one','2':'two'});
+      it('when evaluating a plain reference', function() {
+        expect(model.get('complex.nested.data')).toEqual({ name: 'hash' });
+      });
+
+      it('when evaluating a reference, and getting one of it\'s properties' , function() {
+        expect(model.get('complex.nested.data.name')).toEqual('hash');
+      });
+
+      it('looks up arrays (as map)', function() {
+        expect(model.get('array')).toEqual({0:'zero',1:'one',2:'two'});
       })
 
-  // TODO
-      xit('uses a range operator, array[n..m]', function () {
-        expect(model.get('complex_array[0..1].color')).toBe([{color:'green'},{color:'red'},{color:'orange'}])
+      it('uses a range operator, array[n..m]', function () {
+        expect(model.get('complex_array[0..1].color')).toEqual({
+          'json': {
+            'complex_array': {
+              '0': {
+                name: 'apple'
+              },
+              '1': {
+                name: 'dragonfruit'
+              }
+            }
+          }
+        });
       });
 
-  // TODO
       xit('looks up multiple keys as arguments to get(...)', function () {
-        expect(
-          model.get('complex_array[0..1].name', 'complex_array[0..1].color')
-        ).toBe([{name:'apple',color:'green'},{name:'apple',color:'red'},{name:'orange',color:'orange'}])
+        expect(model.get('complex_array[0..1].name', 'complex_array[0..1].color')).toEqual({
+          'json': {
+            'complex_array': {
+              '0': {
+                name: 'apple',
+                color: 'green'
+              },
+              '1': {
+                name: 'dragonfruit',
+                color: 'red'
+              }
+            }
+          }
+        });
       });
 
-  // TODO
-      xit('looks up multiple keys using [key1, key2, ...] syntax', function () {
-        expect(
-          model.get('complex_array[0].["name","color"]', 'complex_array[0..1].color')
-        ).toBe([{name:'apple',color:'green'},{name:'apple',color:'red'},{name:'orange',color:'orange'}])
+      xit('looks up multiple keys as arguments to get(...)', function () {
+        expect(model.get('complex_array[0..1].["name","color"]')).toEqual({
+          'json': {
+            'complex_array': {
+              '0': {
+                name: 'apple',
+                color: 'green'
+              },
+              '1': {
+                name: 'dragonfruit',
+                color: 'red'
+              }
+            }
+          }
+        });
       });
-    });
-
-// TODO
-    xit('uses a range operator, array[n..m]', function () {
-      expect(model.get('complex_array[0..1].color')).toBe([{color:'green'},{color:'red'},{color:'orange'}])
     });
   });
 });

@@ -9,28 +9,26 @@ aspire.Model = (function (args) {
     return object && object.concat && object.unshift;
   };
 
-  // TODO: fix this frightening object prototyping
-  Object.prototype.map = function (transformation) {
-    var results = {}
-    for (var key in Object.keys(this)) {
-      // [MDN - Object.keys()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) states:
-      // ... a for-in loop enumerates properties in the prototype chain as well
-      if (this.hasOwnProperty(key)) {
-        results[key] = transformation(this[key]);
-      }
-    }
+  Array.prototype.concatAll = function() {
+    var results = [];
+    this.forEach(function(subArray) {
+      results.push.apply(results, subArray);
+    })
     return results;
   }
-  Object.prototype.to_a = function () {
-    var results = [];
-    for (var key in Object.keys(this)) {
-      if (this.hasOwnProperty(key)) {
-        results[key] = this[key];
-      }
-    }
-    return results;
-  };
-
+  Array.prototype.flatMap = function (projection) {
+    return this.map(function(item) {
+      return projection(item);
+    }).
+    concatAll();
+  }
+  Array.prototype.isEqual = function(array) {
+    if (!isArray(array) || this.length !== array.length)
+      return false;
+    return this.every(function (currentValue, index) {
+      return currentValue === array[index];
+    });
+  }
 
   function Model(args) {
 
@@ -38,17 +36,13 @@ aspire.Model = (function (args) {
     var cache = (args === undefined) ? {} : args.cache || {};
     var source = null;
 
-
     // Private methods:
-    this.transformQuery = function (query, alreadyNested) {
+    this.transformQuery = function (query) {
 
       var tokenStart = 0,
           tokenEnd = -1,
           depth = 0,
           results = [];
-
-      // Default argument.
-      alreadyNested = alreadyNested || false;
 
       // Default cases, when undefined, empty, or has no special tokens ('.','[')
       if (query === undefined)
@@ -58,7 +52,7 @@ aspire.Model = (function (args) {
         if (query.length === 0)
           return [];
         else if (query.search(/[.[]/) === -1)
-          return alreadyNested ? query : [query];
+          return [query];
 
       // Prepare query for mapping.
       for (var idx=0; idx < query.length; idx++) {
@@ -112,6 +106,8 @@ aspire.Model = (function (args) {
     };
     var transformQuery = this.transformQuery;
 
+
+
     var transformQueryArray = function (arrayItems) {
 
       // Is it a range, e.g.: 0..3?
@@ -121,14 +117,19 @@ aspire.Model = (function (args) {
         range = range.slice(1).
                   map(function(i) { return parseInt(i,10); }).sort();
         for (var n = range[0]; n <= range[1]; n++)
-          results.push(n.toString());
+          results.push(n);
         return results;
       }
 
       // Otherwise we have a regular token or comma-separated items to parse.
-      return arrayItems.split(',').
-               map(function (item) { return transformQuery(item, true); });
+      if (typeof(arrayItems) === 'string' && arrayItems.search(/^\d+$/) !== -1)
+        return parseInt(arrayItems, 10);
+      else
+        return arrayItems.split(',').
+                 flatMap(function (item) { return transformQuery(item, true); });
     }
+
+
 
     var transformArrayGlob = function (query) {
       var results = [];
@@ -138,38 +139,71 @@ aspire.Model = (function (args) {
           results.push(key);
         }
       }
+      console.log(results);
       return results;
     }
 
 
+
     // Public Methods:
-    this.get = function (path) {
+    this.get = function () {
 
-      var keys,
-          response;
+      var queryList = [],
+          queryToRequest = {},
+          result = {}
 
-      if (typeof(path) === undefined)
+      // Transform queries:
+      if (arguments.length === 0)
         return;
-
-      // Transform strings.
-      if (typeof(path) === 'string') { keys = path.split(".") }
-      else if (isArray(path)) { keys = path; }
-      else { throw new TypeError('Unexpected path.'); }
-
-      if (keys.length === 1) {
-        return cache[keys[0]];
+      for (var idx = 0; idx < arguments.length; idx++) {
+        if (typeof(arguments[idx]) !== 'string')
+          console.error('Unexpected argument', arguments[idx], 'in', arguments);
+        queryList.push(transformQuery(arguments[idx]));
       }
-      else {
-        return keys.reduce(function(tree, key) {
-          var subtree = tree[key];
-          if (subtree && subtree.$type && subtree.$type === 'ref')
-            return this.get(subtree.value);
-          else
-            return subtree;
-          }, cache);
-      }
-    }
+
+      // Query:
+      var kIdx,
+          keys,
+          cachedNode,
+          isSingleLeafNode = true;
+
+      if (queryList.length > 1)
+        isSingleLeafNode = false;
+
+      queryList.forEach(function (query, qIdx) {
+
+        cachedNode = cache;
+        for (kIdx = 0; kIdx < query.length; kIdx++) {
+
+          keys = query[kIdx];
+          if (!isArray(keys))
+            keys = [keys]
+          if (isSingleLeafNode && keys.length > 1)
+            isSingleLeafNode = false;
+
+          keys.forEach(function (key, idx) {
+
+            if (typeof(cachedNode[key]) === 'object' && cachedNode[key].hasOwnProperty('$type'))
+              cachedNode[key] = get(cachedNode[key].value)
+
+            if (isSingleLeafNode)
+              result = cachedNode[key]
+            else
+              result[key] = cachedNode[key];
+            cachedNode = cachedNode[key]
+
+          });
+
+        };
+
+      });
+
+      return result;
+
+    };
     var get = this.get;
+
+
 
     this.set = function () {};
 
