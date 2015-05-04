@@ -36,6 +36,7 @@ aspire.Model = (function (args) {
     var cache = (args === undefined) ? {} : args.cache || {};
     var source = null;
 
+
     // Private methods:
     this.transformQuery = function (query) {
 
@@ -48,29 +49,38 @@ aspire.Model = (function (args) {
       if (query === undefined)
         return [];
 
+      // Query is an empty string or simple key
       if (typeof(query) === 'string')
         if (query.length === 0)
           return [];
         else if (query.search(/[.[]/) === -1)
-          return [query];
+          if (query.search(/^['"'].*['"']$/) === -1)
+            return [[query]];
+          else
+            return [[query.substring(1,query.length-1)]]
 
       // Prepare query for mapping.
       for (var idx=0; idx < query.length; idx++) {
 
         // Split on top-level members
         if (query[idx] === '.' && depth === 0) {
-          if (tokenStart !== idx)
+          if (tokenStart !== idx) {
             tokenEnd = idx;
-            results.push(query.substring(tokenStart, tokenEnd));
+            results.push([query.substring(tokenStart, tokenEnd)]);
+          }
           tokenStart=idx+1;
         }
 
         // Split on indicies or glob (*)
         else if (query[idx] === '[') {
+
+          // Top-level indicies => capture token
           if (depth === 0) {
+
+            // Store the previous token
             if (tokenStart !== idx) {
               tokenEnd = idx;
-              results.push(query.substring(tokenStart, tokenEnd));
+              results.push([query.substring(tokenStart, tokenEnd)]);
             }
 
             // Defer handling the wildcard for all keys
@@ -80,6 +90,7 @@ aspire.Model = (function (args) {
               depth--;
               idx += 2;
             }
+            // Or start the next token
             else {
               tokenStart = idx+1;
             }
@@ -87,7 +98,7 @@ aspire.Model = (function (args) {
           depth++;
         }
 
-        // Delegate nested array handling.
+        // Delegate nested array handling when at top-level
         else if (query[idx] === ']') {
           depth--;
           if (depth === 0) {
@@ -100,12 +111,11 @@ aspire.Model = (function (args) {
 
       // Add last token if needed.
       if (idx !== tokenEnd && tokenStart !== idx) {
-        results.push(query.substring(tokenStart, idx));
+        results.push([query.substring(tokenStart, idx)]);
       }
       return results;
     };
     var transformQuery = this.transformQuery;
-
 
 
     var transformQueryArray = function (arrayItems) {
@@ -123,25 +133,30 @@ aspire.Model = (function (args) {
 
       // Otherwise we have a regular token or comma-separated items to parse.
       if (typeof(arrayItems) === 'string' && arrayItems.search(/^\d+$/) !== -1)
-        return parseInt(arrayItems, 10);
+        return [parseInt(arrayItems, 10)];
       else
         return arrayItems.split(',').
-                 flatMap(function (item) { return transformQuery(item, true); });
-    }
-
+          flatMap(function (item) {
+            return transformQuery(item, true)[0];
+          });
+    };
 
 
     var transformArrayGlob = function (query) {
       var results = [];
-      var arrayObject = get(query);
+      var arrayObject = getWithTransformedQuery([query]);
       for (var key in Object.keys(arrayObject)) {
         if (arrayObject.hasOwnProperty(key)) {
           results.push(key);
         }
       }
-      console.log(results);
       return results;
-    }
+    };
+
+
+    var isObjectReference = function (object) {
+      return typeof(object) === 'object' && object.hasOwnProperty('$type');
+    };
 
 
 
@@ -149,10 +164,8 @@ aspire.Model = (function (args) {
     this.get = function () {
 
       var queryList = [],
-          queryToRequest = {},
           result = {}
 
-      // Transform queries:
       if (arguments.length === 0)
         return;
       for (var idx = 0; idx < arguments.length; idx++) {
@@ -161,47 +174,59 @@ aspire.Model = (function (args) {
         queryList.push(transformQuery(arguments[idx]));
       }
 
-      // Query:
-      var kIdx,
+      return getWithTransformedQuery(queryList);
+
+    }
+    var get = this.get;
+
+
+
+    var getWithTransformedQuery = function (queryList)
+    {
+      var result = {},
+          missingData = {},
+          isSingletonValue = (queryList.length > 1) ? false : true,
+          qkIdx,
           keys,
-          cachedNode,
-          isSingleLeafNode = true;
+          cacheRef = [],
+          refIdx;
 
-      if (queryList.length > 1)
-        isSingleLeafNode = false;
+      queryList.forEach(function (query) {
 
-      queryList.forEach(function (query, qIdx) {
+        cacheRef = [cache];
+        for (qkIdx = 0; qkIdx < query.length; qkIdx++) {
 
-        cachedNode = cache;
-        for (kIdx = 0; kIdx < query.length; kIdx++) {
+          keys = query[qkIdx];
+          if (keys.length > 1) {
+            isSingletonValue = false;
+          }
 
-          keys = query[kIdx];
-          if (!isArray(keys))
-            keys = [keys]
-          if (isSingleLeafNode && keys.length > 1)
-            isSingleLeafNode = false;
-
-          keys.forEach(function (key, idx) {
-
-            if (typeof(cachedNode[key]) === 'object' && cachedNode[key].hasOwnProperty('$type'))
-              cachedNode[key] = get(cachedNode[key].value)
-
-            if (isSingleLeafNode)
-              result = cachedNode[key]
-            else
-              result[key] = cachedNode[key];
-            cachedNode = cachedNode[key]
-
-          });
-
+          cacheRef = keys.flatMap(function (key) {
+            return cacheRef.map(function (ref) {
+              if (ref.hasOwnProperty(key)) {
+                if (isObjectReference(ref[key]))
+                  return get(ref[key].value);
+                else
+                  return ref[key];
+              }
+              else
+                return null;
+            }).
+            filter(function (ref) {
+              return ref !== null;
+            });
+          })
+          // Build value
         };
 
       });
 
-      return result;
-
+      if (isSingletonValue)
+        return cacheRef[0];
+      else
+        return result;
     };
-    var get = this.get;
+
 
 
 
