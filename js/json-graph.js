@@ -188,12 +188,15 @@ aspire.Model = (function (args) {
           isSingletonValue = (queryList.length > 1) ? false : true,
           qkIdx,
           keys,
-          cacheRef = [],
+          refs,
           refIdx;
 
       queryList.forEach(function (query) {
 
-        cacheRef = [cache];
+        refs = [{
+          cache: cache,
+          result: result
+        }];
         for (qkIdx = 0; qkIdx < query.length; qkIdx++) {
 
           keys = query[qkIdx];
@@ -201,13 +204,17 @@ aspire.Model = (function (args) {
             isSingletonValue = false;
           }
 
-          cacheRef = keys.flatMap(function (key) {
-            return cacheRef.map(function (ref) {
-              if (ref.hasOwnProperty(key)) {
-                if (isObjectReference(ref[key]))
-                  return get(ref[key].value);
+          refs = keys.flatMap(function (key) {
+            return refs.map(function (ref) {
+              if (ref.cache.hasOwnProperty(key)) {
+                if (isObjectReference(ref.cache[key]))
+                  return {
+                    cache: get(ref.cache[key].value)
+                  };
                 else
-                  return ref[key];
+                  return {
+                    cache: ref.cache[key]
+                  };
               }
               else
                 return null;
@@ -222,7 +229,7 @@ aspire.Model = (function (args) {
       });
 
       if (isSingletonValue)
-        return cacheRef[0];
+        return refs[0].cache;
       else
         return result;
     };
