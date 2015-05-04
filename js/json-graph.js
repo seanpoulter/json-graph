@@ -85,7 +85,7 @@ aspire.Model = (function (args) {
 
             // Defer handling the wildcard for all keys
             if (query.substring(idx,idx+3) === '[*]') {
-              results.push(transformArrayGlob(results));
+              results.push([Model.wildcard]);
               tokenStart = idx + 3;
               depth--;
               idx += 2;
@@ -142,6 +142,12 @@ aspire.Model = (function (args) {
     };
 
 
+    /*
+
+    It will be curious to see how Falcor implements the wildcard, as either all
+    properties or limited to associative arrays numeric indicies. Since this
+    implementation fails for nested wildcards, evaluation is shifted to runtime.
+
     var transformArrayGlob = function (query) {
       var results = [];
       var arrayObject = getWithTransformedQuery([query]);
@@ -152,6 +158,7 @@ aspire.Model = (function (args) {
       }
       return results;
     };
+    */
 
 
     var isObjectReference = function (object) {
@@ -199,12 +206,14 @@ aspire.Model = (function (args) {
         for (qkIdx = 0; qkIdx < query.length; qkIdx++) {
 
           keys = query[qkIdx];
-          if (keys.length > 1) {
-            isSingletonValue = false;
-          }
+          refs = refs.flatMap(function (ref) {
 
-          refs = keys.flatMap(function (key) {
-            return refs.map(function (ref) {
+            if (Model.isWildcard(query[qkIdx]))
+              keys = Object.getOwnPropertyNames(ref.cache);
+            if (keys.length > 1)
+              isSingletonValue = false;
+
+            return keys.map(function (key) {
               if (ref.cache.hasOwnProperty(key)) {
 
                 var nextCacheRef = ref.cache,
@@ -261,6 +270,14 @@ aspire.Model = (function (args) {
   Model.ref = function (value) {
     return { $type: 'ref', value: value };
   };
+  Model.wildcard = function ArrayGlob () {
+    // To implement the property wildcard and workaround the fact that '*' is a
+    // valid property, this function is used as a unique identifier.
+  };
+  Model.isWildcard = function (array) {
+    return array.isEqual([Model.wildcard]);
+  };
+
   return Model;
 })();
 

@@ -175,7 +175,7 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
           }
         });
         expect(model.transformQuery('data[*]')).
-          toEqual([['data'], ['0','1','2','3']]); // Object.keys makes keys strings.
+          toEqual([['data'], [aspire.Model.wildcard]]); // Object.keys makes keys strings.
       });
 
       it('property lists, \'[prop1, prop2]\'', function () {
@@ -236,6 +236,40 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
           });
       });
 
+      it('nested array index wildcards, \'[*]\'', function () {
+        var cache = {
+          data: {
+              0: {
+                list: {
+                  0: 'a',
+                  1: 'b',
+                  2: 'c'
+                }
+              },
+              1: {
+                list: {
+                  0: '5',
+                  1: '4',
+                  2: '3',
+                  3: '2',
+                  4: '1',
+                  5: '0'
+                }
+              },
+              2: {
+                list: {
+                  0: []
+                }
+              }
+            }
+          };
+        model = new aspire.Model({
+          cache: cache
+        });
+        expect(model.get('data[*].list[*]')).
+          toEqual({ json: cache });
+      });
+
       it('property lists, \'[prop1, prop2]\'', function () {
         expect(model.get('complex_array[0,1].name')).toEqual({
           'json': {
@@ -279,60 +313,5 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
         });
       });
     });
-
-    xdescribe('known shortcomings', function () {
-      it('nested array index wildcards, \'[*]\'', function () {
-        var data = {
-              0: {
-                list: {
-                  0: 'a',
-                  1: 'b',
-                  2: 'c'
-                }
-              },
-              1: {
-                list: {
-                  0: '5',
-                  1: '4',
-                  2: '3',
-                  3: '2',
-                  4: '1',
-                  5: '0'
-                }
-              },
-              2: {
-                list: {
-                  0: []
-                }
-              }
-            };
-        model = new aspire.Model({
-          cache: {
-            data: data
-          }
-        });
-        expect(model.get('data[*].list[*]')).
-          toEqual(data);
-      });
-    });
   });
 });
-
-/*
-  describe('it works like a normal object', function () {
-    var g;
-    beforeEach(function () {
-      g = new JSONGraph();
-    })
-
-    it('can be empty', function() {
-      expect(g).toEqual({});
-    });
-
-    it('can have a property', function () {
-      g.member = 'data';
-      expect(g.member).toEqual('data');
-      expect(g['member']).toEqual('data');
-    });
-  });
-*/
