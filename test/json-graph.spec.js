@@ -218,6 +218,70 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
       });
 
       it('array index wildcards, \'[*]\'', function () {
+        expect(model.get('complex_array[*].color')).
+          toEqual({
+            json: {
+              complex_array: {
+                '0': {
+                  color: 'green'
+                },
+                '1': {
+                  color: 'red'
+                },
+                '2': {
+                  color: 'orange'
+                }
+              }
+            }
+          });
+      });
+
+      it('property lists, \'[prop1, prop2]\'', function () {
+        expect(model.get('complex_array[0,1].name')).toEqual({
+          'json': {
+            'complex_array': {
+              '0': {
+                name: 'apple'
+              },
+              '1': {
+                name: 'dragonfruit'
+              }
+            }
+          }
+        });
+      });
+
+      it('reference', function() {
+        expect(model.get('complex.nested.data')).toEqual({ name: 'hash' });
+      });
+      it('reference properties' , function() {
+        expect(model.get('complex.nested.data.name')).toEqual('hash');
+      });
+
+      it('(associative) array', function() {
+        expect(model.get('array')).toEqual({0:'zero',1:'one',2:'two'});
+      });
+
+      it('query lists', function () {
+        expect(model.get('complex_array[0..1].name', 'complex_array[0..1].color')).toEqual({
+          'json': {
+            'complex_array': {
+              '0': {
+                name: 'apple',
+                color: 'green'
+              },
+              '1': {
+                name: 'dragonfruit',
+                color: 'red'
+              }
+            }
+          }
+        });
+      });
+    });
+
+    xdescribe('known shortcomings', function () {
+      it('nested array index wildcards, \'[*]\'', function () {
         var data = {
               0: {
                 list: {
@@ -247,51 +311,8 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
             data: data
           }
         });
-        expect(model.transformQuery('data[*].list[*]')).
+        expect(model.get('data[*].list[*]')).
           toEqual(data);
-      });
-
-      it('property lists, \'[prop1, prop2]\'', function () {
-        expect(model.get('complex_array[0,1].name')).toEqual({
-          'json': {
-            'complex_array': {
-              '0': {
-                name: 'apple'
-              },
-              '1': {
-                name: 'dragonfruit'
-              }
-            }
-          }
-        });
-      });
-
-      it('reference', function() {
-        expect(model.get('complex.nested.data')).toEqual({ name: 'hash' });
-      });
-      it('reference properties' , function() {
-        expect(model.get('complex.nested.data.name')).toEqual('hash');
-      });
-
-      it('(associative) array', function() {
-        expect(model.get('array')).toEqual({0:'zero',1:'one',2:'two'});
-      });
-
-      xit('looks up multiple keys as arguments to get(...)', function () {
-        expect(model.get('complex_array[0..1].name', 'complex_array[0..1].color')).toEqual({
-          'json': {
-            'complex_array': {
-              '0': {
-                name: 'apple',
-                color: 'green'
-              },
-              '1': {
-                name: 'dragonfruit',
-                color: 'red'
-              }
-            }
-          }
-        });
       });
     });
   });

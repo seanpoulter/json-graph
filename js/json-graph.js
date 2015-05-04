@@ -163,8 +163,7 @@ aspire.Model = (function (args) {
     // Public Methods:
     this.get = function () {
 
-      var queryList = [],
-          result = {}
+      var queryList = [];
 
       if (arguments.length === 0)
         return;
@@ -221,7 +220,7 @@ aspire.Model = (function (args) {
                 if (qkIdx === query.length - 1)
                   nextResultRef[key] = nextCacheRef;
                 else
-                  nextResultRef[key] = {};
+                  nextResultRef[key] = nextResultRef[key] || {};
                 nextResultRef = nextResultRef[key]
 
                 return {
