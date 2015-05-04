@@ -208,20 +208,26 @@ aspire.Model = (function (args) {
             return refs.map(function (ref) {
               if (ref.cache.hasOwnProperty(key)) {
 
+                var nextCacheRef = ref.cache,
+                    nextResultRef = ref.result;
+
                 // Evaluate references
-                if (isObjectReference(ref.cache[key]))
-                  ref.cache = get(ref.cache[key].value)
+                if (isObjectReference(nextCacheRef[key]))
+                  nextCacheRef = get(nextCacheRef[key].value)
                 else
-                  ref.cache = ref.cache[key]
+                  nextCacheRef = nextCacheRef[key]
 
                 // Assign values or build the return object.
                 if (qkIdx === query.length - 1)
-                  ref.result[key] = ref.cache;
+                  nextResultRef[key] = nextCacheRef;
                 else
-                  ref.result[key] = {};
-                ref.result = ref.result[key]
+                  nextResultRef[key] = {};
+                nextResultRef = nextResultRef[key]
 
-                return ref;
+                return {
+                  cache: nextCacheRef,
+                  result: nextResultRef
+                };
               }
               else {
                 // TODO: capture query with this key to load
@@ -238,7 +244,9 @@ aspire.Model = (function (args) {
       if (isSingletonValue)
         return refs[0].cache;
       else
-        return result;
+        return {
+          json: result
+        };
     };
 
 

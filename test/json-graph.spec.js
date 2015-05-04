@@ -202,8 +202,8 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
         expect(model.get('dataStructureById[8]')).toEqual({ name: 'hash' });
       });
 
-      fit('looks up multiple keys as arguments to get(...)', function () {
-        expect(model.get('complex_array[0,1].name')).toEqual({
+      it('array index ranges, \'[n..m]\'', function () {
+        expect(model.get('complex_array[0..1].name')).toEqual({
           'json': {
             'complex_array': {
               '0': {
@@ -217,21 +217,7 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
         });
       });
 
-      xit('array index ranges, \'[n..m]\'', function () {
-        expect(model.get('complex_array[0..1].color')).toEqual({
-          'json': {
-            'complex_array': {
-              '0': {
-                name: 'apple'
-              },
-              '1': {
-                name: 'dragonfruit'
-              }
-            }
-          }
-        });
-      });
-      xit('array index wildcards, \'[*]\'', function () {
+      it('array index wildcards, \'[*]\'', function () {
         var data = {
               0: {
                 list: {
@@ -265,6 +251,21 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
           toEqual(data);
       });
 
+      it('property lists, \'[prop1, prop2]\'', function () {
+        expect(model.get('complex_array[0,1].name')).toEqual({
+          'json': {
+            'complex_array': {
+              '0': {
+                name: 'apple'
+              },
+              '1': {
+                name: 'dragonfruit'
+              }
+            }
+          }
+        });
+      });
+
       it('reference', function() {
         expect(model.get('complex.nested.data')).toEqual({ name: 'hash' });
       });
@@ -291,11 +292,6 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
             }
           }
         });
-      });
-
-      xit('to handle lists of properies', function () {
-        expect(model.transformQuery('key1', 'key2')).toEqual([['key1'], ['key2']]);
-        expect(model.transformQuery('nested.key1', 'key2')).toEqual([['nested'],['key1']], [['key2']]);
       });
     });
   });
