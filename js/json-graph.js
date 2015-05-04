@@ -207,25 +207,32 @@ aspire.Model = (function (args) {
           refs = keys.flatMap(function (key) {
             return refs.map(function (ref) {
               if (ref.cache.hasOwnProperty(key)) {
+
+                // Evaluate references
                 if (isObjectReference(ref.cache[key]))
-                  return {
-                    cache: get(ref.cache[key].value)
-                  };
+                  ref.cache = get(ref.cache[key].value)
                 else
-                  return {
-                    cache: ref.cache[key]
-                  };
+                  ref.cache = ref.cache[key]
+
+                // Assign values or build the return object.
+                if (qkIdx === query.length - 1)
+                  ref.result[key] = ref.cache;
+                else
+                  ref.result[key] = {};
+                ref.result = ref.result[key]
+
+                return ref;
               }
-              else
+              else {
+                // TODO: capture query with this key to load
                 return null;
+              }
             }).
             filter(function (ref) {
               return ref !== null;
             });
-          })
-          // Build value
+          });
         };
-
       });
 
       if (isSingletonValue)

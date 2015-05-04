@@ -202,7 +202,7 @@ describe("_aspire_ to build JSON Graph as demonstrated in _falcor_", function() 
         expect(model.get('dataStructureById[8]')).toEqual({ name: 'hash' });
       });
 
-      xit('looks up multiple keys as arguments to get(...)', function () {
+      fit('looks up multiple keys as arguments to get(...)', function () {
         expect(model.get('complex_array[0,1].name')).toEqual({
           'json': {
             'complex_array': {
