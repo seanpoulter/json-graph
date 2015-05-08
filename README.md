@@ -18,7 +18,35 @@ karma start karma.conf.js
 ```
 
 ## Next Up ##
-    - [ ] Model.set
-    - [ ] Play with Observables
+
+- [ ] Return a promise from Model.get/getValue (.then() syntax)
+- [ ] Looks like Model.getValue(query) returns _just_ a single value
+- [ ] ... and Model.get(query) returns the json: { ... } formatted data
+- [ ] Clean up string tokenizing with a quick regex to the next . or [
+- [ ] Setting the cache with an array in JSON arg maps to an associative array
+- [ ] Model.set
+        ```JavaScript
+        model.setValue('genreLists[0].titles[0].rating', 17).then(function () {
+            return model.get('genreLists[0..1].titles[0]["name","rating"]');
+        }).then(log);
+        ```
+- [ ] Play with Observables
 
 
+## Omitted ##
+
+  - Server
+  - RoutedSever
+  - Building query strings to GET
+  - Building optimized query strings for ID optimization, for example:
+    ```JavaScript
+    model.getValue('genreLists[0].titles[0].boxShot').then(log);
+    ->
+    GET [["titlesById",956,boxShot]]
+    ```
+  - Creating a new asynchronous view (t=45m)
+    ```JavaScript
+    member.bind('location ?
+        then(locationModel  ?
+            new LocationView( ? )
+    ```
